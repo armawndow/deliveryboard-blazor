@@ -36,7 +36,7 @@ flowchart LR
 
 This is a local, single-user demonstration without authentication or an audit ledger. Do not expose it as a production administrative service. The file lock is process-local; multi-instance hosting needs a shared transactional database or a compare-and-swap storage adapter. A cloud version should add Entra ID authorization, an audit trail, durable shared storage, and an explicit retention policy. No Azure resources are provisioned by this repository.
 
-GitHub Pages cannot host this server-rendered Blazor application; the portfolio links to this runnable source. The Azure implementation example lives separately in [TenantFlow](https://github.com/kawmy/tenantflow-dotnet).
+GitHub Pages cannot host this server-rendered Blazor application; the portfolio links to this runnable source. The Azure implementation example lives separately in [TenantFlow](https://github.com/armawndow/tenantflow-dotnet).
 
 ## Validation
 
