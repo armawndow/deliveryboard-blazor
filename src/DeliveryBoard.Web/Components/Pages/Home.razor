@@ -1,0 +1,42 @@
+@page "/"
+@rendermode InteractiveServer
+@using DeliveryBoard.Core
+@inject IBoardRepository Repository
+<PageTitle>DeliveryBoard — Release readiness</PageTitle>
+<main>
+    <header><a href="/" class="wordmark">delivery<span>board.</span></a><span class="sample-label">PORTFOLIO DEMONSTRATION / LOCAL DATA</span></header>
+    <div class="intro"><p class="eyebrow">A release is a decision, not a percentage.</p><h1>Ship with<br /><em>the evidence.</em></h1><p>A Blazor workbench for reviewing release gates, tracking evidence, and protecting the decision from stale edits.</p></div>
+    @if (board is null) { <p role="status">Loading the release board…</p> }
+    else
+    {
+        var verdict = ReleasePolicy.Evaluate(board.Gates);
+        <section class="verdict" aria-label="Release decision"><div><p class="eyebrow">@board.Name</p><h2>@verdict.Decision</h2><p>@(verdict.Decision == "Ready" ? "Every gate has passed with evidence." : "Resolve the outstanding gates before release.")</p></div><div class="score"><strong>@verdict.ReadinessPercent.ToString("0.#")%</strong><span>weighted evidence readiness</span><small>Revision @board.Revision</small></div></section>
+        <p class="message" role="status" aria-live="polite">@message</p>
+        <section aria-label="Release gates" class="gates">
+            @foreach (var gate in board.Gates)
+            {
+                <article class="gate" @key="gate.Id"><div><h3>@gate.Label</h3><p>@(gate.Critical ? "Critical gate" : "Supporting gate") · Weight @gate.Weight</p></div><div class="edit-controls"><label>Status <select aria-label="@($"{gate.Label} status")" @bind="states[gate.Id]"><option value="@GateState.Pending">Pending</option><option value="@GateState.Passed">Passed</option><option value="@GateState.Failed">Failed</option></select></label><label>Evidence <input aria-label="@($"{gate.Label} evidence")" @bind="evidence[gate.Id]" @bind:event="oninput" maxlength="1000" placeholder="Link or describe the evidence" /></label><button disabled="@saving" @onclick="() => SaveAsync(gate.Id)">Save gate</button></div></article>
+            }
+        </section>
+        <section class="explanation"><h2>What makes this useful?</h2><div><p><strong>Hard gates win.</strong> A high readiness score cannot override a failed gate or an unresolved critical gate.</p><p><strong>Evidence is required.</strong> A gate cannot pass on an empty explanation. Values and weights are validated in the domain layer.</p><p><strong>Stale edits are visible.</strong> Saves carry an expected revision. A concurrent edit reloads the current board instead of overwriting it.</p></div></section>
+        <footer><a href="/api/board" download="release-board.json">Export board JSON ↗</a><span>Built by Armando Francisco Denardi · C# / .NET 10 / Blazor</span></footer>
+    }
+</main>
+@code {
+    private ReleaseBoard? board;
+    private readonly Dictionary<string, GateState> states = new();
+    private readonly Dictionary<string, string> evidence = new();
+    private string message = "Seed values are illustrative fixtures, not evidence from an actual release.";
+    private bool saving;
+    protected override async Task OnInitializedAsync() => Load(await Repository.ReadAsync());
+    private void Load(ReleaseBoard next) { board = next; foreach (var gate in next.Gates) { states[gate.Id] = gate.State; evidence[gate.Id] = gate.Evidence; } }
+    private async Task SaveAsync(string id)
+    {
+        if (board is null || saving) return;
+        saving = true;
+        try { var result = await Repository.UpdateAsync(id, states[id], evidence[id], board.Revision); Load(result.Board); message = result.Applied ? "Gate saved. Decision recalculated." : "Another edit changed the board. Latest values loaded; review and save again."; }
+        catch (ArgumentException ex) { message = ex.Message; }
+        catch (IOException) { message = "The board could not be saved. Existing data was preserved; try again."; }
+        finally { saving = false; }
+    }
+}

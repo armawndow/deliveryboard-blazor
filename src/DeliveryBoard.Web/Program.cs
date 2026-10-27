@@ -1,0 +1,15 @@
+using DeliveryBoard.Core;
+using DeliveryBoard.Web;
+using DeliveryBoard.Web.Components;
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseStaticWebAssets();
+if (string.IsNullOrEmpty(builder.Configuration["urls"])) builder.WebHost.UseUrls("http://127.0.0.1:5087");
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddSingleton<IBoardRepository>(_ => new FileBoardRepository(builder.Configuration["BoardPath"] ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "board.json")));
+var app = builder.Build();
+app.UseExceptionHandler("/Error", createScopeForErrors: true);
+app.UseAntiforgery(); app.MapStaticAssets();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", sample = "DeliveryBoard" }));
+app.MapGet("/api/board", async (IBoardRepository repository, CancellationToken token) => Results.Ok(await repository.ReadAsync(token)));
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+app.Run();
