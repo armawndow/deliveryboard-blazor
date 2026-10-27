@@ -45,3 +45,8 @@ Run the commands above for fresh evidence. The checked-in CI builds and tests on
 ## Framework reference
 
 [Microsoft: Blazor render modes](https://learn.microsoft.com/en-us/aspnet/core/blazor/components/render-modes?view=aspnetcore-10.0).
+
+## Running interface
+
+![DeliveryBoard running locally with illustrative release gates](docs/preview.jpg)
+
